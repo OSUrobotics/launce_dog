@@ -1,0 +1,7 @@
+<launch>
+
+   <!-- restamper picks up tf_old and changes every message's timestamp to the current timestamp-->
+  <node pkg="joy" type="joy_node" name="joystick"/>
+  <node pkg="turtlebot_follower" type="follower" name="turtlebot_follower"/>
+  <node pkg="crab_state_machine" type="crab_controller.py" name="crab_controller"/>
+ </launch>
