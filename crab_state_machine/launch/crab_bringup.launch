@@ -36,5 +36,5 @@
     <param name="max_z" value="1.2" />
     <param name="goal_z" value="0.6" />
   </node>
-  <node pkg="crab_state_machine" type="crab_controller.py" name="crab_controller"/>
+  <node pkg="crab_state_machine" type="crab_controller.py" name="crab_controller" output="screen"/>
  </launch>

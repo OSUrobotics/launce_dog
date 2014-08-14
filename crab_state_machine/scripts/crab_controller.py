@@ -7,13 +7,15 @@ import smach_ros
 from geometry_msgs.msg import Twist
 from turtlebot_msgs.srv import SetFollowStateRequest 
 from turtlebot_msgs.srv import SetFollowStateResponse 
+from turtlebot_msgs.srv import SetFollowState
 from sensor_msgs.msg import Joy
 
 #define state follower
 class stop(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes = ['outcome1','outcome2'])
-		rospy.wait_for_service('change_state')
+		change_state = rospy.ServiceProxy('/turtlebot_follower/change_state', SetFollowState)
+		rospy.wait_for_service('/turtlebot_follower/change_state')
 		while (change_state(SetFollowStateRequest.STOPPED).result != SetFollowStateResponse.OK):
 			pass
 		self.count = 0
@@ -58,9 +60,9 @@ class follower(smach.State):
 		rospy.loginfo('Executing State follower')
 		self.joy_sub = rospy.Subscriber("/joy",Joy,self.joy_callback)
 		
-		rospy.wait_for_service('change_state')
-		change_state = rospy.ServiceProxy('change_state', SetFollowState)
-		while (change_state(SetFollowStateRequest.FOLLOW) != SetFollowStateResponse.OK):
+		rospy.wait_for_service('/turtlebot_follower/change_state')
+		change_state = rospy.ServiceProxy('/turtlebot_follower/change_state', SetFollowState)
+		while (change_state(SetFollowStateRequest.FOLLOW).result != SetFollowStateResponse.OK):
 			pass
 
 		while (self.a_bool == 0):
