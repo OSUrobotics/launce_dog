@@ -4,11 +4,13 @@ import roslib; roslib.load_manifest('crab_state_machine')
 import rospy
 import smach
 import smach_ros
+import numpy as np
 from geometry_msgs.msg import Twist
 from turtlebot_msgs.srv import SetFollowStateRequest 
 from turtlebot_msgs.srv import SetFollowStateResponse 
 from turtlebot_msgs.srv import SetFollowState
 from sensor_msgs.msg import Joy
+from sensor_msgs.msg import LaserScan
 
 #define state follower
 class stop(smach.State):
@@ -21,8 +23,6 @@ class stop(smach.State):
 		self.count = 0
 		self.stop_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist)
 		self.a_bool = 0
-
-
 
 	def execute(self, userdata):
 		rospy.loginfo('Executing State stop')
@@ -55,7 +55,6 @@ class follower(smach.State):
 		smach.State.__init__(self, outcomes = ['outcome1'])
 		self.a_bool = 0
 
-
 	def execute(self, userdata):
 		rospy.loginfo('Executing State follower')
 		self.joy_sub = rospy.Subscriber("/joy",Joy,self.joy_callback)
@@ -82,17 +81,35 @@ class wanderer(smach.State):
 	def __init__(self):
 		smach.State.__init__(self, outcomes = ['outcome1'])
 		self.wanderer_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist)
+		self.command = Twist()
+		self.laser_bool = 0
 		self.a_bool = 0
-
 
 	def execute(self, userdata):
 		rospy.loginfo('Executing State wanderer')
 		self.joy_sub = rospy.Subscriber("/joy",Joy,self.joy_callback)
+		self.base_scan_sub = rospy.Subscriber("/scan",LaserScan,self.laser_callback)
 		#Service to Start Follower
 		while (self.a_bool == 0):
-			rospy.loginfo('wanderer State Waiting')
-		#Service to stop Follower
+			print self.laser_bool
+			if	(self.laser_bool == 1):
+				if (self.min_range > 1):
+					rospy.loginfo('Above State Waiting')
+					self.command.linear.x = .25
+					self.command.angular.z = 0
+					self.wanderer_pub.publish(self.command)
+				if (self.min_range <= 1):
+					self.turn = 0
+					rospy.loginfo('Below State Waiting')
+					while (self.turn < 20):
+						self.command.linear.x = 0
+						self.command.angular.z = .25
+						self.wanderer_pub.publish(self.command)
+						self.turn = self.turn + 1	
+			#rospy.loginfo('wanderer State Waiting')
+		self.base_scan_sub.unregister()
 		self.joy_sub.unregister()
+		self.laser_bool = 0
 		self.a_bool = 0 
 		return 'outcome1'
 
@@ -100,6 +117,11 @@ class wanderer(smach.State):
 		self.buttons = joy_values.buttons
 		if (self.buttons[0] == 1):
 			self.a_bool = 1
+
+	def laser_callback(self, laser_scan):
+		numpy_ranges = np.array(laser_scan.ranges)
+		self.min_range = np.nanmin(numpy_ranges)
+		self.laser_bool = 1
 
 class sit(smach.State):
 	def __init__(self):
